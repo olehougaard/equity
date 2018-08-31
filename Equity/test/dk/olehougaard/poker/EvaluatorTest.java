@@ -269,4 +269,68 @@ class EvaluatorTest {
 		long wheel = Hand.createHand("3s", "Jd", "4c", "Jc", "2c", "Ah", "4d");
 		assertTrue(straight > wheel);
 	}
+	
+	// TRIPS
+	@Test
+	void onePairIsNotTrips() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "8s", "7s");
+		assertEquals(0L, Evaluator.evaluate(hand) & TRIP_MASK);
+	}
+	
+	@Test
+	void threePairsIsNotTrips() {
+		long hand = Hand.createHand("Jc", "Js", "Ts", "2h", "2d", "Td", "7s");
+		assertEquals(0L, Evaluator.evaluate(hand) & TRIP_MASK);
+	}
+	
+	@Test
+	void threeOfAKindIsTrips() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "2s", "7s");
+		assertNotEquals(0L, Evaluator.evaluate(hand) & TRIP_MASK);
+	}
+
+	@Test
+	void tripsAreEvaluatedOnTheRankOfThe3() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "2s", "7s");
+		long bigger = Hand.createHand("7c", "5s", "4s", "3h", "3d", "3s", "2s");
+		assertTrue(Evaluator.evaluate(bigger)> Evaluator.evaluate(hand));
+	}
+	
+	@Test
+	void equalTripsAreEvaluatedOnKickers() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "3h", "3d", "3s", "7s");
+		long outkicked = Hand.createHand("7c", "5s", "4s", "3h", "3d", "3s", "2s");
+		assertTrue(evaluate(outkicked) < evaluate(hand));
+	}
+	
+	@Test
+	void onlyTwoKickersCountInEvaluation() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "3h", "3d", "3s", "7s");
+		long equal = Hand.createHand("Ac", "Js", "4s", "3h", "3d", "3s", "2s");
+		assertTrue(evaluate(hand) == evaluate(equal));
+	}
+	
+	@Test
+	void aBoatIsNotTrips() {
+		long boat = Hand.createHand("Qs", "Jd", "Jh", "Jc", "Ac", "3c", "Ad");
+		assertEquals(0L, evaluate(boat) & TRIP_MASK);
+	}
+	
+	@Test
+	void tripsAreNotAnyOfTheHigher() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "2s", "7s");
+		assertEquals(0L, Evaluator.evaluate(hand) & (STRAIGHT_MASK | FLUSH_MASK | BOAT_MASK | QUAD_MASK | SF_MASK));
+	}
+
+	@Test
+	void aStraightIsNotTrips() {
+		long hand = Hand.createHand("Ac", "3s", "4s", "2h", "2d", "2s", "5s");
+		assertEquals(0L, Evaluator.evaluate(hand) & TRIP_MASK);
+	}
+	
+	@Test
+	void theTripsAreInTheLSP() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "3h", "3d", "3s", "7s");
+		assertEquals(3L, (Evaluator.evaluate(hand) & MOST_SIGNIFICANT_PAIR_MASK) >> MSP_INDEX);
+	}
 }

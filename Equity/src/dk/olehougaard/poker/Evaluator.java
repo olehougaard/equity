@@ -44,6 +44,8 @@ public class Evaluator {
 	public static final long UNPAIRED_MASK = LSP_POS - 1; 
 	public static final long LEAST_SIGNIFICANT_PAIR_MASK = 0xF << LSP_INDEX;
 	public static final long MOST_SIGNIFICANT_PAIR_MASK = 0xF << MSP_INDEX;
+	public static final long TWO_PAIR_MASK = 1L << TWO_PAIR_INDEX;
+	public static final long TRIP_MASK = 1L << TRIP_INDEX;
 	public static final long STRAIGHT_MASK = 1L << STRAIGHT_INDEX;
 	public static final long FLUSH_MASK = 1L << FLUSH_INDEX;
 	public static final long BOAT_MASK = 1L << BOAT_INDEX;
@@ -117,6 +119,17 @@ public class Evaluator {
 					}
 				}
 			}
+		} else if (pair_signature[TRIPS] >= 1) {
+			for(int i = ACE_INDEX; i >= DEUCE_INDEX; i--) {
+				if (pairs[i] == PAIRS_IN_TRIPS) {
+					long rest = valuesOnly(hand) & ~(1L << i);
+					long kicker = 1L << ACE_INDEX;
+					while((kicker & rest) == 0) kicker >>= 1;
+					long kicker2 = kicker << 1;
+					while((kicker2 & rest) == 0) kicker2 >>= 1;
+					return TRIP_MASK | ((i - DEUCE_INDEX + 2) * MSP_POS) | kicker | kicker2; 
+				}
+			}
 		}
 		return 0L;
 	}
@@ -167,6 +180,7 @@ public class Evaluator {
 		if ((flush & FLUSH_MASK) != 0) return flush;
 		long straight = evaluateStraight(hand);
 		if ((straight & STRAIGHT_MASK) != 0) return straight;
+		if ((pairs & TRIP_MASK) != 0) return pairs;
 		return valuesOnly(hand);
 	}
 }
