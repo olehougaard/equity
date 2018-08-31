@@ -103,8 +103,12 @@ public class Evaluator {
 			for(int i = ACE_INDEX; i >= DEUCE_INDEX; i--) {
 				if (pairs[i] == PAIRS_IN_QUADS) {
 					long rest = valuesOnly(hand) & ~(1L << i);
-					long kicker = 1L << ACE_INDEX;
-					while((kicker & rest) == 0) kicker >>= 1;
+					long kicker = rest | rest >> 1;
+					kicker |= kicker >> 2;
+					kicker |= kicker >> 4;
+					kicker |= kicker >> 8;
+					kicker++;
+					kicker >>= 1;
 					return QUAD_MASK | ((i - DEUCE_INDEX + 2) * MSP_POS) | kicker;
 				}
 			}
@@ -123,11 +127,38 @@ public class Evaluator {
 			for(int i = ACE_INDEX; i >= DEUCE_INDEX; i--) {
 				if (pairs[i] == PAIRS_IN_TRIPS) {
 					long rest = valuesOnly(hand) & ~(1L << i);
-					long kicker = 1L << ACE_INDEX;
-					while((kicker & rest) == 0) kicker >>= 1;
-					long kicker2 = kicker << 1;
-					while((kicker2 & rest) == 0) kicker2 >>= 1;
+					long kicker = rest | rest >> 1;
+					kicker |= kicker >> 2;
+					kicker |= kicker >> 4;
+					kicker |= kicker >> 8;
+					kicker++;
+					kicker >>= 1;
+					rest &= ~kicker;
+					long kicker2 = rest | rest >> 1;
+					kicker2 |= kicker2 >> 2;
+					kicker2 |= kicker2 >> 4;
+					kicker2 |= kicker2 >> 8;
+					kicker2++;
+					kicker2 >>= 1;
 					return TRIP_MASK | ((i - DEUCE_INDEX + 2) * MSP_POS) | kicker | kicker2; 
+				}
+			}
+		} else if (pair_signature[PAIRS] >= 2) {
+			for(int i = ACE_INDEX; i >= DEUCE_INDEX; i--) {
+				if (pairs[i] == PAIRS_IN_PAIR) {
+					pairs[i] = 0;
+					for(int j = ACE_INDEX; j >= DEUCE_INDEX; j--) {
+						if (pairs[j] >= PAIRS_IN_PAIR) {
+							long rest = valuesOnly(hand) & ~((1L << i) | (1L << j));
+							long kicker = rest | rest >> 1;
+							kicker |= kicker >> 2;
+							kicker |= kicker >> 4;
+							kicker |= kicker >> 8;
+							kicker++;
+							kicker >>= 1;
+							return TWO_PAIR_MASK | ((i - DEUCE_INDEX + 2) * MSP_POS) | ((j - DEUCE_INDEX + 2) * LSP_POS) | kicker;
+						}
+					}
 				}
 			}
 		}
@@ -180,7 +211,7 @@ public class Evaluator {
 		if ((flush & FLUSH_MASK) != 0) return flush;
 		long straight = evaluateStraight(hand);
 		if ((straight & STRAIGHT_MASK) != 0) return straight;
-		if ((pairs & TRIP_MASK) != 0) return pairs;
+		if ((pairs & (TRIP_MASK | TWO_PAIR_MASK)) != 0) return pairs;
 		return valuesOnly(hand);
 	}
 }

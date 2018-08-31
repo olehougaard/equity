@@ -333,4 +333,64 @@ class EvaluatorTest {
 		long hand = Hand.createHand("Ac", "Js", "Ts", "3h", "3d", "3s", "7s");
 		assertEquals(3L, (Evaluator.evaluate(hand) & MOST_SIGNIFICANT_PAIR_MASK) >> MSP_INDEX);
 	}
+
+	// TWO PAIRS
+	@Test
+	void onePairIsNotTwoPairs() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "8s", "7s");
+		assertEquals(0L, Evaluator.evaluate(hand) & TWO_PAIR_MASK);
+	}
+	
+	@Test
+	void threePairsAreTwoPairs() {
+		long hand = Hand.createHand("Jc", "Js", "Ts", "2h", "2d", "Td", "7s");
+		assertNotEquals(0L, Evaluator.evaluate(hand) & TWO_PAIR_MASK);
+	}
+	
+	@Test
+	void twoPairsAreTwoPairs() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "7h", "2d", "2s", "7s");
+		assertNotEquals(0L, Evaluator.evaluate(hand) & TWO_PAIR_MASK);
+	}
+
+	@Test
+	void twoPairsAreEvaluatedOnTheHighestRank() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "7h", "2d", "2s", "7s");
+		long bigger = Hand.createHand("8c", "5s", "4s", "8h", "3d", "3s", "2s");
+		assertTrue(Evaluator.evaluate(bigger)> Evaluator.evaluate(hand));
+	}
+	
+	@Test
+	void twoPairsAreEvaluatedOnTheLowestRankAfterTheHighest() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "7h", "2d", "2s", "7s");
+		long bigger = Hand.createHand("7c", "5s", "4s", "7h", "3d", "3s", "2s");
+		assertTrue(Evaluator.evaluate(bigger)> Evaluator.evaluate(hand));
+	}
+	
+	@Test
+	void equalTwoPairsAreEvaluatedOnKickers() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "7h", "3d", "3s", "7s");
+		long outkicked = Hand.createHand("7c", "5s", "4s", "7h", "3d", "3s", "2s");
+		assertTrue(evaluate(outkicked) < evaluate(hand));
+	}
+	
+	@Test
+	void thirdPairIsCounterfeited() {
+		long threePairs = Hand.createHand("Jc", "Js", "8s", "2h", "2d", "8d", "9s");
+		long twoPairs = Hand.createHand("Jc", "Js", "8s", "3h", "2d", "8d", "9s");
+		assertTrue(evaluate(threePairs) == evaluate(twoPairs));
+	}
+	
+	@Test
+	void onlyOneKickerCountsInTwoPair() {
+		long twoPairs = Hand.createHand("Jc", "Js", "8s", "3h", "2d", "8d", "9s");
+		long equal = Hand.createHand("Jc", "Js", "8s", "7h", "2d", "8d", "9s");
+		assertTrue(evaluate(equal) == evaluate(twoPairs));
+	}
+	
+	@Test
+	void twoPairsAreNoneOfTheAbove() {
+		long twoPairs = Hand.createHand("Jc", "Js", "8s", "3h", "2d", "8d", "9s");
+		assertEquals(0, evaluate(twoPairs) & (TRIP_MASK | STRAIGHT_MASK | FLUSH_MASK | BOAT_MASK | QUAD_MASK | SF_MASK));
+	}
 }
