@@ -66,7 +66,7 @@ public class Evaluator {
 	}
 	
 	public static final int SHORT_MASK = 0xffff;
-	public static final int DE_BRUIJN_SEQUENCE = 0b0000111101100101;
+	public static final short DE_BRUIJN_SEQUENCE = 0b0000111101100101;
 	public static final int[] DE_BRUIJN_HASH = {0, 1, 11, 2, 14, 12, 8, 3, 15, 10, 13, 7, 9, 6, 5, 4};
 	
 	private static long evaluatePaired(long hand) {
@@ -145,6 +145,15 @@ public class Evaluator {
 		return 0L;
 	}
 	
+	private static long evaluateStraight(long hand) {
+		hand |= (hand & ACE_MASK) >> (ACE_INDEX - LOW_ACE_INDEX);
+		hand = valuesOnly(hand);
+		for(long pattern = BROADWAY_PATTERN; pattern >= WHEEL_PATTERN; pattern >>= 1) {
+			if ((pattern & hand) == pattern) return STRAIGHT_MASK | pattern;
+		}
+		return 0L;
+	}
+	
 	private static long valuesOnly(long hand) {
 		return (hand & CLUB_MASK) >> CLUB_INDEX | (hand & DIAMOND_MASK) >> DIAMOND_INDEX | (hand & HEART_MASK) >> HEART_INDEX | (hand & SPADE_MASK) >> SPADE_INDEX;
 	}
@@ -156,6 +165,8 @@ public class Evaluator {
 		if ((pairs & (QUAD_MASK | BOAT_MASK)) != 0) return pairs;
 		long flush = evaluateFlush(hand);
 		if ((flush & FLUSH_MASK) != 0) return flush;
+		long straight = evaluateStraight(hand);
+		if ((straight & STRAIGHT_MASK) != 0) return straight;
 		return valuesOnly(hand);
 	}
 }

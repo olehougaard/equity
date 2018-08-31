@@ -221,10 +221,52 @@ class EvaluatorTest {
 	
 	//STRAIGHT
 	@Test
-	void aStraightDrawIsNotAStraigh() {
+	void aStraightDrawIsNotAStraight() {
 		long draw = Hand.createHand("Qs", "Jd", "Tc", "Jc", "Kc", "3h", "4d");
 		assertEquals(0L, Evaluator.evaluate(draw) & STRAIGHT_MASK);
 	}
 	
+	@Test
+	void fiveInARowIsAStraight() {
+		long straight = Hand.createHand("Qs", "Jd", "Tc", "Jc", "Kc", "9h", "4d");
+		assertNotEquals(0L, Evaluator.evaluate(straight) & STRAIGHT_MASK);
+	}
 	
+	@Test
+	void aStraightIsNotABiggerHand() {
+		long straight = Hand.createHand("Qs", "Jd", "Tc", "Jc", "Kc", "9h", "4d");
+		assertEquals(0L, Evaluator.evaluate(straight) & (FLUSH_MASK | BOAT_MASK | QUAD_MASK | SF_MASK));
+	}
+	
+	@Test
+	void aBroadwayIsAStraight() {
+		long broadway = Hand.createHand("Qs", "Jd", "Tc", "Jc", "Kc", "Ah", "4d");
+		assertNotEquals(0L, Evaluator.evaluate(broadway) & STRAIGHT_MASK);
+	}
+	
+	@Test
+	void aWheelIsAStraight() {
+		long wheel = Hand.createHand("3s", "Jd", "5c", "Jc", "2c", "Ah", "4d");
+		assertNotEquals(0L, Evaluator.evaluate(wheel) & STRAIGHT_MASK);
+	}
+	
+	@Test
+	void aStraightFlushIsNotAStraight() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "9s", "8s", "7s");
+		assertEquals(0L, Evaluator.evaluate(hand) & STRAIGHT_MASK);
+	}
+	
+	@Test
+	void aStraightIsDecidedByHighestCard() {
+		long straight = Hand.createHand("Qs", "Jd", "Tc", "Jc", "Kc", "9h", "4d");
+		long broadway = Hand.createHand("Qs", "Jd", "Tc", "Jc", "Kc", "Ah", "4d");
+		assertTrue(straight < broadway);
+	}
+	
+	@Test
+	void aWheelIsTheLowestStraight() {
+		long straight = Hand.createHand("Qs", "Jd", "Tc", "Jc", "Kc", "9h", "4d");
+		long wheel = Hand.createHand("3s", "Jd", "4c", "Jc", "2c", "Ah", "4d");
+		assertTrue(straight > wheel);
+	}
 }
