@@ -42,8 +42,8 @@ public class Evaluator {
 	public static final int SF_INDEX = QUAD_INDEX + 1;
 
 	public static final long UNPAIRED_MASK = LSP_POS - 1; 
-	public static final long LEAST_SIGNIFICANT_PAIR_MASK = 0xF << LSP_INDEX;
-	public static final long MOST_SIGNIFICANT_PAIR_MASK = 0xF << MSP_INDEX;
+	public static final long LSP_MASK = 0xF << LSP_INDEX;
+	public static final long MSP_MASK = 0xF << MSP_INDEX;
 	public static final long TWO_PAIR_MASK = 1L << TWO_PAIR_INDEX;
 	public static final long TRIP_MASK = 1L << TRIP_INDEX;
 	public static final long STRAIGHT_MASK = 1L << STRAIGHT_INDEX;
@@ -161,6 +161,15 @@ public class Evaluator {
 					}
 				}
 			}
+		} else if (pair_signature[PAIRS] == 1) {
+			for(int i = ACE_INDEX; i >= DEUCE_INDEX; i--) {
+				if (pairs[i] == PAIRS_IN_PAIR) {
+					long rest = valuesOnly(hand) & ~(1L << i);
+					long bits = countBits(rest);
+					while(bits-- > 3) rest &= rest - 1;
+					return ((i - DEUCE_INDEX + 2) * MSP_POS) | rest; 
+				}
+			}
 		}
 		return 0L;
 	}
@@ -173,20 +182,22 @@ public class Evaluator {
 	private static long evaluateFlush(long hand) {
 		for(long mask = SPADE_MASK, index = SPADE_INDEX; mask != 0; mask >>>= BITS_PER_SUIT, index >>>= BITS_PER_SUIT) {
 			long cardsInSuit = (hand & mask) >> index;
-			long bits = cardsInSuit;
-			bits = (bits & HAMMING1) + ((bits >> 1) & HAMMING1);
-			bits = (bits & HAMMING2) + ((bits >> 2) & HAMMING2);
-			bits = (bits & HAMMING4) + ((bits >> 4) & HAMMING4);
-			bits = (bits & HAMMING8) + ((bits >> 8) & HAMMING8);
+			long bits = countBits(cardsInSuit);
 			if (bits >= 5) {
-				while(bits > 5) {
-					cardsInSuit &= cardsInSuit - 1;
-					bits--;
-				}
+				while(bits-- > 5) cardsInSuit &= cardsInSuit - 1;
 				return FLUSH_MASK | cardsInSuit;
 			}
 		}
 		return 0L;
+	}
+
+	private static long countBits(long cardsInSuit) {
+		long bits = cardsInSuit;
+		bits = (bits & HAMMING1) + ((bits >> 1) & HAMMING1);
+		bits = (bits & HAMMING2) + ((bits >> 2) & HAMMING2);
+		bits = (bits & HAMMING4) + ((bits >> 4) & HAMMING4);
+		bits = (bits & HAMMING8) + ((bits >> 8) & HAMMING8);
+		return bits;
 	}
 	
 	private static long evaluateStraight(long hand) {
@@ -211,7 +222,10 @@ public class Evaluator {
 		if ((flush & FLUSH_MASK) != 0) return flush;
 		long straight = evaluateStraight(hand);
 		if ((straight & STRAIGHT_MASK) != 0) return straight;
-		if ((pairs & (TRIP_MASK | TWO_PAIR_MASK)) != 0) return pairs;
-		return valuesOnly(hand);
+		if ((pairs & MSP_MASK) != 0) return pairs;
+		long rest = valuesOnly(hand);
+		long bits = countBits(rest);
+		while(bits-- > 5) rest &= rest - 1;
+		return rest;
 	}
 }

@@ -59,7 +59,7 @@ class EvaluatorTest {
 	@Test
 	void quadIsTheMostSignificantPair() {
 		long hand = Hand.createHand("Ac", "Js", "Jd", "Jh", "Jc", "3c", "5c");
-		assertEquals(11L, (Evaluator.evaluate(hand) & MOST_SIGNIFICANT_PAIR_MASK) >> MSP_INDEX);
+		assertEquals(11L, (Evaluator.evaluate(hand) & MSP_MASK) >> MSP_INDEX);
 	}
 
 	@Test
@@ -111,13 +111,13 @@ class EvaluatorTest {
 	@Test
 	void boatHasThreeOfAKindAsTheMSP() {
 		long boat = Hand.createHand("Qs", "Jd", "Jh", "Jc", "Ac", "3c", "Ad");
-		assertEquals(11L, (Evaluator.evaluate(boat) & MOST_SIGNIFICANT_PAIR_MASK) >> MSP_INDEX);
+		assertEquals(11L, (Evaluator.evaluate(boat) & MSP_MASK) >> MSP_INDEX);
 	}
 
 	@Test
-	void boatHasThreeOfAKindAsTheLSP() {
+	void boatHasTwoOfAKindAsTheLSP() {
 		long boat = Hand.createHand("Qs", "Jd", "Jh", "Jc", "Ac", "3c", "Ad");
-		assertEquals(14L, (Evaluator.evaluate(boat) & LEAST_SIGNIFICANT_PAIR_MASK) >> LSP_INDEX);
+		assertEquals(14L, (Evaluator.evaluate(boat) & LSP_MASK) >> LSP_INDEX);
 	}
 
 	@Test
@@ -331,7 +331,7 @@ class EvaluatorTest {
 	@Test
 	void theTripsAreInTheLSP() {
 		long hand = Hand.createHand("Ac", "Js", "Ts", "3h", "3d", "3s", "7s");
-		assertEquals(3L, (Evaluator.evaluate(hand) & MOST_SIGNIFICANT_PAIR_MASK) >> MSP_INDEX);
+		assertEquals(3L, (Evaluator.evaluate(hand) & MSP_MASK) >> MSP_INDEX);
 	}
 
 	// TWO PAIRS
@@ -392,5 +392,65 @@ class EvaluatorTest {
 	void twoPairsAreNoneOfTheAbove() {
 		long twoPairs = Hand.createHand("Jc", "Js", "8s", "3h", "2d", "8d", "9s");
 		assertEquals(0, evaluate(twoPairs) & (TRIP_MASK | STRAIGHT_MASK | FLUSH_MASK | BOAT_MASK | QUAD_MASK | SF_MASK));
+	}
+	
+	// ONE PAIR
+	@Test
+	void onePairIsInMSP() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "8s", "7s");
+		assertEquals(2L, (evaluate(hand) & MSP_MASK) >> MSP_INDEX);
+	}
+	
+	@Test
+	void onePairIsNotInLSP() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "8s", "7s");
+		assertEquals(0L, evaluate(hand) & LSP_MASK);
+	}
+	
+	@Test
+	void onePairSetsNoneOfTheFlags() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "8s", "7s");
+		assertEquals(0, evaluate(hand) & (TWO_PAIR_MASK | TRIP_MASK | STRAIGHT_MASK | FLUSH_MASK | BOAT_MASK | QUAD_MASK | SF_MASK));
+	}
+
+	@Test
+	void samePairIsDecidedOnHighestKicker() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "8s", "7s");
+		long higher = Hand.createHand("Ac", "Qs", "Ts", "2h", "2d", "8s", "7s");
+		assertTrue(evaluate(higher) > evaluate(hand));
+	}
+
+	@Test
+	void onlyThreeKickersCountInPair() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "8s", "7s");
+		long equal = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "9s", "7s");
+		assertTrue(evaluate(equal) == evaluate(hand));
+	}
+	
+	//NOTHING
+	@Test
+	void nothingHandSetsNeitherPair() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "3h", "2d", "8s", "7s");
+		assertEquals(0L, evaluate(hand) & (MSP_MASK | LSP_MASK));
+	}
+	
+	@Test
+	void nothingHandSetsNoneOfTheFlags() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "3h", "2d", "8s", "7s");
+		assertEquals(0, evaluate(hand) & (TWO_PAIR_MASK | TRIP_MASK | STRAIGHT_MASK | FLUSH_MASK | BOAT_MASK | QUAD_MASK | SF_MASK));
+	}
+	
+	@Test
+	void nothingHandIsDecidedOnHighestKicker() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "3h", "2d", "8s", "7s");
+		long higher = Hand.createHand("Ac", "Qs", "Ts", "3h", "2d", "8s", "7s");
+		assertTrue(evaluate(higher) > evaluate(hand));
+	}
+	
+	@Test
+	void onlyFiveKickersCountInNothingHand() {
+		long hand = Hand.createHand("Ac", "Js", "Ts", "3h", "2d", "8s", "7s");
+		long equal = Hand.createHand("Ac", "Js", "Ts", "4h", "2d", "8s", "7s");
+		assertTrue(evaluate(equal) == evaluate(hand));
 	}
 }
