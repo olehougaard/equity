@@ -1,6 +1,6 @@
 package dk.olehougaard.poker;
 
-public class Test {
+public class Sandbox {
 	public static void main(String[] args) {
 		short bitPattern = 0b0110001110100101;
 		while (bitPattern != 0) {
