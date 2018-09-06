@@ -5,34 +5,24 @@ import static dk.olehougaard.poker.Hand.ALL_SUIT_POSITIONS;
 import static dk.olehougaard.poker.Hand.BITS_PER_SUIT;
 import static dk.olehougaard.poker.Hand.CLUB_INDEX;
 import static dk.olehougaard.poker.Hand.CLUB_MASK;
-import static dk.olehougaard.poker.Hand.CLUB_POSITION;
 import static dk.olehougaard.poker.Hand.DEUCE_INDEX;
 import static dk.olehougaard.poker.Hand.DIAMOND_INDEX;
 import static dk.olehougaard.poker.Hand.DIAMOND_MASK;
-import static dk.olehougaard.poker.Hand.DIAMOND_POSITION;
 import static dk.olehougaard.poker.Hand.FIVE_INDEX;
 import static dk.olehougaard.poker.Hand.HEART_INDEX;
 import static dk.olehougaard.poker.Hand.HEART_MASK;
-import static dk.olehougaard.poker.Hand.HEART_POSITION;
 import static dk.olehougaard.poker.Hand.LOW_ACE_INDEX;
 import static dk.olehougaard.poker.Hand.SPADE_INDEX;
 import static dk.olehougaard.poker.Hand.SPADE_MASK;
-import static dk.olehougaard.poker.Hand.SPADE_POSITION;
 
 public class Evaluator {
 	private static final long WHEEL_PATTERN = (1L << 5) - 1;
 	private static final long BROADWAY_PATTERN = WHEEL_PATTERN << (ACE_INDEX - FIVE_INDEX);
 	private static final long ACE_MASK = (1L << ACE_INDEX) * ALL_SUIT_POSITIONS;
 	
-	private static final long NARROW_PAIR_MASK = DIAMOND_POSITION | CLUB_POSITION;
-	private static final long MIDDLE_PAIR_MASK = HEART_POSITION | CLUB_POSITION;
-	private static final long WIDE_PAIR_MASK = SPADE_POSITION | CLUB_POSITION;
-	
 	public static final int UNPAIRED_INDEX = 0;
 	public static final int LSP_INDEX = UNPAIRED_INDEX + ACE_INDEX + 1;
-	private static final long LSP_POS = 1L << LSP_INDEX;
 	public static final int MSP_INDEX = LSP_INDEX + 4;
-	private static final long MSP_POS = 1L << MSP_INDEX;
 	public static final int TWO_PAIR_INDEX = MSP_INDEX + 4;
 	public static final int TRIP_INDEX = TWO_PAIR_INDEX + 1;
 	public static final int STRAIGHT_INDEX = TRIP_INDEX + 1;
@@ -41,7 +31,7 @@ public class Evaluator {
 	public static final int QUAD_INDEX = BOAT_INDEX + 1;
 	public static final int SF_INDEX = QUAD_INDEX + 1;
 
-	public static final long UNPAIRED_MASK = LSP_POS - 1; 
+	public static final long UNPAIRED_MASK = (1L << LSP_INDEX) - 1; 
 	public static final long LSP_MASK = 0xF << LSP_INDEX;
 	public static final long MSP_MASK = 0xF << MSP_INDEX;
 	public static final long TWO_PAIR_MASK = 1L << TWO_PAIR_INDEX;
@@ -72,106 +62,79 @@ public class Evaluator {
 	public static final int[] DE_BRUIJN_HASH = {0, 1, 11, 2, 14, 12, 8, 3, 15, 10, 13, 7, 9, 6, 5, 4};
 	
 	private static long evaluatePaired(long hand) {
-		int[] pairs = new int[ACE_INDEX + 1];
-		int[] pair_signature = new int[3];
-		final int PAIRS = 0, TRIPS = 1, QUADS = 2;
-		final int PAIRS_IN_PAIR = 1, PAIRS_IN_TRIPS = 3, PAIRS_IN_QUADS = 6;
-		final long[] masks = { WIDE_PAIR_MASK, MIDDLE_PAIR_MASK, NARROW_PAIR_MASK };
-		for (int k = 0; k < masks.length; k++) {
-			long mask = masks[k];
-			for(int i = 0; i <= k * BITS_PER_SUIT + ACE_INDEX; mask <<= 1, i++) {
-				if ((mask & hand) == mask) {
-					pairs[i % BITS_PER_SUIT]++;
-					switch(pairs[i % BITS_PER_SUIT]) {
-					case PAIRS_IN_PAIR:
-						pair_signature[PAIRS]++;
-						break;
-					case PAIRS_IN_TRIPS:
-						pair_signature[PAIRS]--;
-						pair_signature[TRIPS]++;
-						break;
-					case PAIRS_IN_QUADS:
-						pair_signature[TRIPS]--;
-						pair_signature[QUADS]++;
-						break;
-					default:
+		long close_paired = hand & (hand >> BITS_PER_SUIT);
+		long mid_paired = hand & (hand >> 2 * BITS_PER_SUIT);
+		long distant_paired = hand & (hand >> 3 * BITS_PER_SUIT);
+		long paired = (close_paired >> 32) | ((close_paired & DIAMOND_MASK) >> 16) | (close_paired & CLUB_MASK) | (mid_paired >> 16) | (mid_paired & CLUB_MASK) | distant_paired;
+		long hand_type = 0L;
+		int msp = 0;
+		int lsp = 0;
+		int kicker_count = 5;
+		int distinct_values = 7;
+		while (paired != 0) {
+			final short lsb = (short)(paired & (-paired));
+			final int lsb_index = Evaluator.DE_BRUIJN_HASH[((lsb * Evaluator.DE_BRUIJN_SEQUENCE) & Evaluator.SHORT_MASK) >>> 12];
+			final int pair = lsb_index + 2 - DEUCE_INDEX;
+			final int pair_count = (int)((lsb & (hand >> SPADE_INDEX)) + (lsb & (hand >> HEART_INDEX)) + (lsb & (hand >> DIAMOND_INDEX)) + (lsb & hand)) >> lsb_index;
+			switch (pair_count) {
+			case 4:
+				distinct_values -= 3;
+				hand_type = QUAD_MASK;
+				msp = pair;
+				lsp = 0;
+				kicker_count = 1;
+				break;
+			case 3:
+				distinct_values -= 2;
+				if (hand_type != QUAD_MASK) {
+					if (msp != 0) {
+						hand_type = BOAT_MASK;
+						lsp = msp;
+						msp = pair;
+						kicker_count = 0;
+					} else {
+						hand_type = TRIP_MASK;
+						msp = pair;
+						kicker_count = 2;
+					}
+				}
+				break;
+			case 2:
+				distinct_values--;
+				if (hand_type != QUAD_MASK) {
+					if (hand_type == BOAT_MASK) {
+						lsp = pair;
+					} else if (hand_type == TRIP_MASK) {
+						hand_type = BOAT_MASK;
+						lsp = pair;
+						kicker_count = 0;
+					} else if (msp != 0) {
+						hand_type = TWO_PAIR_MASK;
+						lsp = msp;
+						msp = pair;
+						kicker_count = 1;
+					} else {
+						msp = pair;
+						kicker_count = 3;
 					}
 				}
 			}
+			paired &= paired - 1;
 		}
-		if (pair_signature[QUADS] >= 1) {
-			for(int i = ACE_INDEX; i >= DEUCE_INDEX; i--) {
-				if (pairs[i] == PAIRS_IN_QUADS) {
-					long rest = valuesOnly(hand) & ~(1L << i);
-					long kicker = rest | rest >> 1;
-					kicker |= kicker >> 2;
-					kicker |= kicker >> 4;
-					kicker |= kicker >> 8;
-					kicker++;
-					kicker >>= 1;
-					return QUAD_MASK | ((i - DEUCE_INDEX + 2) * MSP_POS) | kicker;
-				}
-			}
-		} else if (pair_signature[TRIPS] >= 1 && pair_signature[PAIRS] >= 1 || pair_signature[TRIPS] >= 2) {
-			for(int i = ACE_INDEX; i >= DEUCE_INDEX; i--) {
-				if (pairs[i] == PAIRS_IN_TRIPS) {
-					pairs[i] = 0;
-					for(int j = ACE_INDEX; j >= DEUCE_INDEX; j--) {
-						if (pairs[j] >= PAIRS_IN_PAIR) {
-							return BOAT_MASK | ((i - DEUCE_INDEX + 2) * MSP_POS) | ((j - DEUCE_INDEX + 2) * LSP_POS);
-						}
-					}
-				}
-			}
-		} else if (pair_signature[TRIPS] >= 1) {
-			for(int i = ACE_INDEX; i >= DEUCE_INDEX; i--) {
-				if (pairs[i] == PAIRS_IN_TRIPS) {
-					long rest = valuesOnly(hand) & ~(1L << i);
-					long kicker = rest | rest >> 1;
-					kicker |= kicker >> 2;
-					kicker |= kicker >> 4;
-					kicker |= kicker >> 8;
-					kicker++;
-					kicker >>= 1;
-					rest &= ~kicker;
-					long kicker2 = rest | rest >> 1;
-					kicker2 |= kicker2 >> 2;
-					kicker2 |= kicker2 >> 4;
-					kicker2 |= kicker2 >> 8;
-					kicker2++;
-					kicker2 >>= 1;
-					return TRIP_MASK | ((i - DEUCE_INDEX + 2) * MSP_POS) | kicker | kicker2; 
-				}
-			}
-		} else if (pair_signature[PAIRS] >= 2) {
-			for(int i = ACE_INDEX; i >= DEUCE_INDEX; i--) {
-				if (pairs[i] == PAIRS_IN_PAIR) {
-					pairs[i] = 0;
-					for(int j = ACE_INDEX; j >= DEUCE_INDEX; j--) {
-						if (pairs[j] >= PAIRS_IN_PAIR) {
-							long rest = valuesOnly(hand) & ~((1L << i) | (1L << j));
-							long kicker = rest | rest >> 1;
-							kicker |= kicker >> 2;
-							kicker |= kicker >> 4;
-							kicker |= kicker >> 8;
-							kicker++;
-							kicker >>= 1;
-							return TWO_PAIR_MASK | ((i - DEUCE_INDEX + 2) * MSP_POS) | ((j - DEUCE_INDEX + 2) * LSP_POS) | kicker;
-						}
-					}
-				}
-			}
-		} else if (pair_signature[PAIRS] == 1) {
-			for(int i = ACE_INDEX; i >= DEUCE_INDEX; i--) {
-				if (pairs[i] == PAIRS_IN_PAIR) {
-					long rest = valuesOnly(hand) & ~(1L << i);
-					long bits = countBits(rest);
-					while(bits-- > 3) rest &= rest - 1;
-					return ((i - DEUCE_INDEX + 2) * MSP_POS) | rest; 
-				}
-			}
+		long bit_count = distinct_values;
+		long msp_mask = 0;
+		if (msp != 0) {
+			msp_mask = 1L << (msp - 1);
+			bit_count--;
 		}
-		return 0L;
+		long lsp_mask = 0;
+		if (lsp != 0) {
+			lsp_mask = 1L << (lsp - 1);
+			bit_count--;
+		}
+		long unpaired = valuesOnly(hand) & ~(msp_mask | lsp_mask);
+		while (bit_count-- > kicker_count) unpaired &= unpaired - 1;
+		return hand_type | (msp << MSP_INDEX) | (lsp << LSP_INDEX) | unpaired;
 	}
 	
 	private static final long HAMMING8  = (1L << 8) - 1;
@@ -222,10 +185,6 @@ public class Evaluator {
 		if ((flush & FLUSH_MASK) != 0) return flush;
 		long straight = evaluateStraight(hand);
 		if ((straight & STRAIGHT_MASK) != 0) return straight;
-		if ((pairs & MSP_MASK) != 0) return pairs;
-		long rest = valuesOnly(hand);
-		long bits = countBits(rest);
-		while(bits-- > 5) rest &= rest - 1;
-		return rest;
+		return pairs;
 	}
 }

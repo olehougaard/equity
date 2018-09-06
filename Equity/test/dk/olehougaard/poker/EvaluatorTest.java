@@ -166,6 +166,20 @@ class EvaluatorTest {
 		assertEquals(0L, Evaluator.evaluate(boat) & BOAT_MASK);
 	}
 
+	@Test
+	void highestPairCountInBoat() {
+		long fullOfEightsNotDeuces = Hand.createHand("8s", "Jd", "Jh", "Jc", "2c", "8c", "2d");
+		long fullOfEights = Hand.createHand("8s", "Jd", "Jh", "Jc", "4c", "8c", "2d");
+		assertTrue(evaluate(fullOfEights) == evaluate(fullOfEightsNotDeuces));
+	}
+
+	@Test
+	void overpairCountsInBoat() {
+		long fullOfAcesNotDeuces = Hand.createHand("As", "Jd", "Jh", "Jc", "2c", "Ac", "2d");
+		long fullOfAces = Hand.createHand("As", "Jd", "Jh", "Jc", "4c", "Ac", "2d");
+		assertTrue(evaluate(fullOfAces) == evaluate(fullOfAcesNotDeuces));
+	}
+
 	// FLUSH
 	@Test
 	void fourOfAsuitIsNotAFlush() {
@@ -286,7 +300,7 @@ class EvaluatorTest {
 	@Test
 	void threeOfAKindIsTrips() {
 		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "2s", "7s");
-		assertNotEquals(0L, Evaluator.evaluate(hand) & TRIP_MASK);
+		assertNotEquals(0L, evaluate(hand) & TRIP_MASK);
 	}
 
 	@Test
@@ -376,8 +390,8 @@ class EvaluatorTest {
 	
 	@Test
 	void thirdPairIsCounterfeited() {
-		long threePairs = Hand.createHand("Jc", "Js", "8s", "2h", "2d", "8d", "9s");
-		long twoPairs = Hand.createHand("Jc", "Js", "8s", "3h", "2d", "8d", "9s");
+		long threePairs = Hand.createHand("Jc", "Js", "8s", "7h", "2d", "8d", "7s");
+		long twoPairs = Hand.createHand("Jc", "Js", "8s", "7h", "2d", "8d", "3s");
 		assertTrue(evaluate(threePairs) == evaluate(twoPairs));
 	}
 	

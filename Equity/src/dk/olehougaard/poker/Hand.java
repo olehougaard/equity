@@ -18,6 +18,7 @@ public class Hand {
 	public static final long DIAMOND_MASK = (1L << HEART_INDEX) - 1 ^ (1L << DIAMOND_INDEX) - 1;
 	public static final long HEART_MASK = (1L << SPADE_INDEX) - 1 ^ (1L << HEART_INDEX) - 1;
 	public static final long SPADE_MASK =  -1L ^ (1L << SPADE_INDEX) - 1;
+
 	
 	public static final int LOW_ACE_INDEX = 0;
 	public static final int DEUCE_INDEX = 1;
@@ -33,6 +34,9 @@ public class Hand {
 	public static final int QUEEN_INDEX = 11;
 	public static final int KING_INDEX = 12;
 	public static final int ACE_INDEX = 13;
+	
+	public static final long CARD_MASK = 0b11111111111110L;
+	public static final long HAND_MASK = (CARD_MASK << SPADE_POSITION) | (CARD_MASK << HEART_POSITION) | (CARD_MASK << DIAMOND_POSITION)  | (CARD_MASK << CLUB_POSITION); 
 	
 	private static final String SUITS = "CDHS";
 	private static final String VALUES = "23456789TJQKA";
