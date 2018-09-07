@@ -12,6 +12,6 @@ public class PerformanceTest {
 		for(long hand: hands) Evaluator.evaluate(hand);
 		long start = System.currentTimeMillis();
 		for(long hand: hands) Evaluator.evaluate(hand);
-		System.out.println(System.currentTimeMillis() - start);
+		System.out.println((System.currentTimeMillis() - start) / 100.0);
 	}
 }
