@@ -4,7 +4,6 @@ import static dk.olehougaard.poker.Hand.ACE_INDEX;
 import static dk.olehougaard.poker.Hand.ALL_SUIT_POSITIONS;
 import static dk.olehougaard.poker.Hand.BITS_PER_SUIT;
 import static dk.olehougaard.poker.Hand.CLUB_MASK;
-import static dk.olehougaard.poker.Hand.DEUCE_INDEX;
 import static dk.olehougaard.poker.Hand.FIVE_INDEX;
 import static dk.olehougaard.poker.Hand.LOW_ACE_INDEX;
 
@@ -15,8 +14,8 @@ public class Evaluator {
 	
 	public static final int UNPAIRED_INDEX = 0;
 	public static final int LSP_INDEX = UNPAIRED_INDEX + ACE_INDEX + 1;
-	public static final int MSP_INDEX = LSP_INDEX + 4;
-	public static final int TWO_PAIR_INDEX = MSP_INDEX + 4;
+	public static final int MSP_INDEX = LSP_INDEX + ACE_INDEX + 1;
+	public static final int TWO_PAIR_INDEX = MSP_INDEX + ACE_INDEX + 1;
 	public static final int TRIP_INDEX = TWO_PAIR_INDEX + 1;
 	public static final int STRAIGHT_INDEX = TRIP_INDEX + 1;
 	public static final int FLUSH_INDEX = STRAIGHT_INDEX + 1;
@@ -25,8 +24,8 @@ public class Evaluator {
 	public static final int SF_INDEX = QUAD_INDEX + 1;
 
 	public static final long UNPAIRED_MASK = (1L << LSP_INDEX) - 1; 
-	public static final long LSP_MASK = 0xF << LSP_INDEX;
-	public static final long MSP_MASK = 0xF << MSP_INDEX;
+	public static final long LSP_MASK = ((1L << MSP_INDEX) - 1) & ~UNPAIRED_MASK;
+	public static final long MSP_MASK = ((1L << TWO_PAIR_INDEX) - 1) & ~(LSP_MASK | UNPAIRED_MASK);
 	public static final long TWO_PAIR_MASK = 1L << TWO_PAIR_INDEX;
 	public static final long TRIP_MASK = 1L << TRIP_INDEX;
 	public static final long STRAIGHT_MASK = 1L << STRAIGHT_INDEX;
@@ -53,10 +52,6 @@ public class Evaluator {
 		return 0L;
 	}
 	
-	public static final int SHORT_MASK = 0xffff;
-	public static final short DE_BRUIJN_SEQUENCE = 0b0000111101100101;
-	public static final int[] DE_BRUIJN_HASH = {0, 1, 11, 2, 14, 12, 8, 3, 15, 10, 13, 7, 9, 6, 5, 4};
-	
 	private static long evaluatePaired(long hand) {
 		long odd_paired = hand & ((hand >>> BITS_PER_SUIT) | (hand << Long.SIZE - BITS_PER_SUIT));
 		long even_paired = hand & (hand >> 2 * BITS_PER_SUIT);
@@ -65,8 +60,8 @@ public class Evaluator {
 		paired |= paired >> BITS_PER_SUIT;
 		paired &= CLUB_MASK;
 		long hand_type = 0L;
-		short msp_mask = 0;
-		short lsp_mask = 0;
+		long msp_mask = 0L;
+		long lsp_mask = 0L;
 		int counterfeited = 0;
 		while (paired != 0) {
 			final short lsb = (short)(paired & (-paired));
@@ -118,9 +113,7 @@ public class Evaluator {
 		long unpaired = valuesOnly(hand) & ~(msp_mask | lsp_mask);
 		if (counterfeited < 2) unpaired &= unpaired - 1;
 		if (counterfeited < 1) unpaired &= unpaired - 1;
-		int lsp = lsp_mask == 0 ? 0 : Evaluator.DE_BRUIJN_HASH[((lsp_mask * Evaluator.DE_BRUIJN_SEQUENCE) & Evaluator.SHORT_MASK) >>> 12] + 2 - DEUCE_INDEX;
-		int msp = msp_mask == 0 ? 0 : Evaluator.DE_BRUIJN_HASH[((msp_mask * Evaluator.DE_BRUIJN_SEQUENCE) & Evaluator.SHORT_MASK) >>> 12] + 2 - DEUCE_INDEX;
-		return hand_type | (msp << MSP_INDEX) | (lsp << LSP_INDEX) | unpaired;
+		return hand_type | (msp_mask << MSP_INDEX) | (lsp_mask << LSP_INDEX) | unpaired;
 	}
 	
 	private static final long HAMMING8  = (1L << 8) - 1;

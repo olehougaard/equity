@@ -14,156 +14,158 @@ class EvaluatorTest {
 
 	@SuppressWarnings("unused")
 	private static void printEval(long hand) {
-		print(Evaluator.evaluate(hand));
+		print(evaluate(hand));
 	}
 
 	// STRAIGHT FLUSH
 	@Test
 	void aStraightFlushIsAStraightFlush() {
 		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "9s", "8s", "7s");
-		assertNotEquals(0L, Evaluator.evaluate(hand) & SF_MASK);
+		assertNotEquals(0L, evaluate(hand) & SF_MASK);
 	}
 
 	@Test
 	void biggerStraightFlushIsBigger() {
 		long winner = Hand.createHand("Ac", "Js", "Ts", "2h", "9s", "8s", "7s");
 		long sucker = Hand.createHand("Ac", "6s", "Ts", "2h", "9s", "8s", "7s");
-		assertTrue(Evaluator.evaluate(winner) > Evaluator.evaluate(sucker));
+		assertTrue(evaluate(winner) > evaluate(sucker));
 	}
 
 	@Test
 	void aStraightFlushDrawIsNotAStraightFlush() {
 		long hand = Hand.createHand("Ac", "4d", "Ts", "2h", "9s", "8s", "7s");
-		assertEquals(0L, Evaluator.evaluate(hand) & SF_MASK);
+		assertEquals(0L, evaluate(hand) & SF_MASK);
 	}
 
 	@Test
 	void aStraightIsNotAStraightFlush() {
 		long hand = Hand.createHand("Ac", "Jd", "Ts", "2h", "9s", "8s", "7s");
-		assertEquals(0L, Evaluator.evaluate(hand) & SF_MASK);
+		assertEquals(0L, evaluate(hand) & SF_MASK);
 	}
 
 	@Test
 	void aWheelFlushIsAStraightFlush() {
 		long hand = Hand.createHand("Ac", "Js", "4c", "2c", "9s", "3c", "5c");
-		assertNotEquals(0L, Evaluator.evaluate(hand) & SF_MASK);
+		assertNotEquals(0L, evaluate(hand) & SF_MASK);
 	}
 
 	// QUADS
 	@Test
 	void fourOfAKindIsAQuad() {
 		long hand = Hand.createHand("Ac", "Js", "Jd", "Jh", "Jc", "3c", "5c");
-		assertNotEquals(0L, Evaluator.evaluate(hand) & QUAD_MASK);
+		assertNotEquals(0L, evaluate(hand) & QUAD_MASK);
 	}
 
 	@Test
 	void quadIsTheMostSignificantPair() {
 		long hand = Hand.createHand("Ac", "Js", "Jd", "Jh", "Jc", "3c", "5c");
-		assertEquals(11L, (Evaluator.evaluate(hand) & MSP_MASK) >> MSP_INDEX);
+		assertEquals(1L << Hand.JACK_INDEX, (evaluate(hand) & MSP_MASK) >> MSP_INDEX);
 	}
 
 	@Test
 	void quadHasAKicker() {
 		long hand = Hand.createHand("Ac", "Js", "Jd", "Jh", "Jc", "3c", "5c");
-		assertEquals(1L << Hand.ACE_INDEX, Evaluator.evaluate(hand) & UNPAIRED_MASK);
+		assertEquals(1L << Hand.ACE_INDEX, evaluate(hand) & UNPAIRED_MASK);
 	}
 
 	@Test
 	void theQuadIsNotAKicker() {
 		long hand = Hand.createHand("Ac", "Js", "Jd", "Jh", "Jc", "3c", "5c");
-		assertEquals(0L, Evaluator.evaluate(hand) & (1L << Hand.JACK_INDEX));
+		assertEquals(0L, evaluate(hand) & (1L << Hand.JACK_INDEX));
 	}
 
 	@Test
 	void theLowCardsAreNotKickers() {
 		long hand = Hand.createHand("Ac", "Js", "Jd", "Jh", "Jc", "3c", "5c");
-		assertEquals(0L, Evaluator.evaluate(hand) & (1L << Hand.TREY_INDEX));
-		assertEquals(0L, Evaluator.evaluate(hand) & (1L << Hand.FIVE_INDEX));
+		assertEquals(0L, evaluate(hand) & (1L << Hand.TREY_INDEX));
+		assertEquals(0L, evaluate(hand) & (1L << Hand.FIVE_INDEX));
 	}
 
 	@Test
 	void quadIsSmallerThanStraightFlush() {
 		long quad = Hand.createHand("Ac", "Js", "Jd", "Jh", "Jc", "3c", "5c");
 		long sf = Hand.createHand("Ac", "Js", "4c", "2c", "9s", "3c", "5c");
-		assertTrue(Evaluator.evaluate(quad) < Evaluator.evaluate(sf));
+		assertTrue(evaluate(quad) < evaluate(sf));
 	}
 
 	@Test
 	void HighQuadIsBiggerThanLowQuad() {
 		long high = Hand.createHand("Js", "Jd", "Jh", "Jc", "Ac", "3c", "3d");
 		long low = Hand.createHand("3s", "3h", "Jh", "Jc", "Ac", "3c", "3d");
-		assertTrue(Evaluator.evaluate(high) > Evaluator.evaluate(low));
+		assertTrue(evaluate(high) > evaluate(low));
 	}
 
 	@Test
 	void fourOfAKindAndThreeOfAKindIsAQuad() {
 		long hand = Hand.createHand("Ac", "Js", "Jd", "Jh", "Jc", "Ad", "Ah");
-		assertNotEquals(0L, Evaluator.evaluate(hand) & QUAD_MASK);
+		assertNotEquals(0L, evaluate(hand) & QUAD_MASK);
 	}
 
 	// BOAT
 	@Test
 	void threeOfAKindAndTwoOfAKindIsABoat() {
 		long boat = Hand.createHand("Qs", "Jd", "Jh", "Jc", "Ac", "3c", "Ad");
-		assertNotEquals(0L, Evaluator.evaluate(boat) & BOAT_MASK);
+		assertNotEquals(0L, evaluate(boat) & BOAT_MASK);
 	}
 
 	@Test
 	void boatHasThreeOfAKindAsTheMSP() {
 		long boat = Hand.createHand("Qs", "Jd", "Jh", "Jc", "Ac", "3c", "Ad");
-		assertEquals(11L, (Evaluator.evaluate(boat) & MSP_MASK) >> MSP_INDEX);
+		print(1l << Hand.JACK_INDEX);
+		printEval(boat >> MSP_INDEX);
+		assertEquals(1L << Hand.JACK_INDEX, (evaluate(boat) & MSP_MASK) >> MSP_INDEX);
 	}
 
 	@Test
 	void boatHasTwoOfAKindAsTheLSP() {
 		long boat = Hand.createHand("Qs", "Jd", "Jh", "Jc", "Ac", "3c", "Ad");
-		assertEquals(14L, (Evaluator.evaluate(boat) & LSP_MASK) >> LSP_INDEX);
+		assertEquals(1L << Hand.ACE_INDEX, (evaluate(boat) & LSP_MASK) >> LSP_INDEX);
 	}
 
 	@Test
 	void boatHasNoKicker() {
 		long boat = Hand.createHand("Qs", "Jd", "Jh", "Jc", "Ac", "3c", "Ad");
-		assertEquals(0, Evaluator.evaluate(boat) & UNPAIRED_MASK);
+		assertEquals(0, evaluate(boat) & UNPAIRED_MASK);
 	}
 
 	@Test
 	void aBoatIsNotAQuad() {
 		long boat = Hand.createHand("Qs", "Jd", "Jh", "Jc", "Ac", "3c", "Ad");
-		assertEquals(0L, Evaluator.evaluate(boat) & (QUAD_MASK | SF_MASK));
+		assertEquals(0L, evaluate(boat) & (QUAD_MASK | SF_MASK));
 	}
 
 	@Test
 	void aBoatIsSmallerThanAQuad() {
 		long boat = Hand.createHand("Qs", "Jd", "Jh", "Jc", "Ac", "3c", "Ad");
 		long quad = Hand.createHand("2c", "Ts", "Td", "Th", "Tc", "3d", "4h");
-		assertTrue(Evaluator.evaluate(boat) < Evaluator.evaluate(quad));
+		assertTrue(evaluate(boat) < evaluate(quad));
 	}
 
 	@Test
 	void boatsAreComparedByTheTrips() {
 		long jacksFull = Hand.createHand("Qs", "Jd", "Jh", "Jc", "Ac", "3c", "Ad");
 		long queensFull = Hand.createHand("Qs", "Qd", "Qh", "Jc", "2c", "3c", "2d");
-		assertTrue(Evaluator.evaluate(jacksFull) < Evaluator.evaluate(queensFull));
+		assertTrue(evaluate(jacksFull) < evaluate(queensFull));
 	}
 
 	@Test
 	void boatsAreComparedByThePairsWhenTheTripsAreEqual() {
 		long fullOfAces = Hand.createHand("Qs", "Jd", "Jh", "Jc", "Ac", "3c", "Ad");
 		long fullOfDeuces = Hand.createHand("Qs", "Jd", "Jh", "Jc", "2c", "3c", "2d");
-		assertTrue(Evaluator.evaluate(fullOfAces) > Evaluator.evaluate(fullOfDeuces));
+		assertTrue(evaluate(fullOfAces) > evaluate(fullOfDeuces));
 	}
 
 	@Test
 	void twoTripsIsABoat() {
 		long boat = Hand.createHand("As", "Td", "Jh", "Jc", "Ac", "3c", "Ad");
 		long twoTrips = Hand.createHand("Ah", "Jd", "Jh", "Jc", "Ac", "3c", "Ad");
-		assertTrue(Evaluator.evaluate(boat) == Evaluator.evaluate(twoTrips));
+		assertTrue(evaluate(boat) == evaluate(twoTrips));
 	}
 
 	@Test
 	void TwoPairsIsNotABoat() {
 		long boat = Hand.createHand("Qs", "Jd", "Jh", "Tc", "Ac", "3c", "Ad");
-		assertEquals(0L, Evaluator.evaluate(boat) & BOAT_MASK);
+		assertEquals(0L, evaluate(boat) & BOAT_MASK);
 	}
 
 	@Test
@@ -184,90 +186,90 @@ class EvaluatorTest {
 	@Test
 	void fourOfAsuitIsNotAFlush() {
 		long draw = Hand.createHand("Qs", "Jd", "Tc", "Jc", "Ac", "3c", "Ad");
-		assertEquals(0L, Evaluator.evaluate(draw) & FLUSH_MASK);
+		assertEquals(0L, evaluate(draw) & FLUSH_MASK);
 	}
 	
 	@Test
 	void fiveOfASuitIsAFlush() {
 		long flush = Hand.createHand("Qc", "Jd", "Tc", "Jc", "Ac", "3c", "Ad");
-		assertNotEquals(0L, Evaluator.evaluate(flush) & FLUSH_MASK);
+		assertNotEquals(0L, evaluate(flush) & FLUSH_MASK);
 	}
 	
 	@Test
 	void sixOfASuitIsAFlush() {
 		long flush = Hand.createHand("Qc", "8c", "Tc", "Jc", "Ac", "3c", "Ad");
-		assertNotEquals(0L, Evaluator.evaluate(flush) & FLUSH_MASK);
+		assertNotEquals(0L, evaluate(flush) & FLUSH_MASK);
 	}
 	
 	@Test
 	void aStraightFlushIsNotAFlush() {
 		long flush = Hand.createHand("Qc", "Jd", "Tc", "Jc", "Ac", "Kc", "Ad");
-		assertEquals(0L, Evaluator.evaluate(flush) & FLUSH_MASK);
+		assertEquals(0L, evaluate(flush) & FLUSH_MASK);
 	}
 	
 	@Test
 	void aFlushIsLessThanABoat() {
 		long boat = Hand.createHand("As", "Td", "Jh", "Jc", "Ac", "3c", "Ad");
 		long flush = Hand.createHand("Qc", "Jd", "Tc", "Jc", "Ac", "3c", "Ad");
-		assertTrue(Evaluator.evaluate(flush) <Evaluator.evaluate(boat));
+		assertTrue(evaluate(flush) <evaluate(boat));
 	}
 	
 	@Test
 	void flushOrderIsDeterminedByHighCard() {
 		long high = Hand.createHand("Qc", "Jd", "Tc", "Jc", "Ac", "3c", "Ad");
 		long low = Hand.createHand("Qc", "Jd", "Tc", "Jc", "4c", "3c", "Ad");
-		assertTrue(Evaluator.evaluate(low) <Evaluator.evaluate(high));
+		assertTrue(evaluate(low) <evaluate(high));
 	}
 	
 	@Test
 	void flushOrderIsDeterminedByHighestDifferentCard() {
 		long high = Hand.createHand("Qc", "Jd", "Tc", "Jc", "Ac", "3c", "Ad");
 		long low = Hand.createHand("Qc", "Jd", "Tc", "8c", "Ac", "3c", "Ad");
-		assertTrue(Evaluator.evaluate(low) <Evaluator.evaluate(high));
+		assertTrue(evaluate(low) <evaluate(high));
 	}
 	
 	@Test
 	void fiveHighestCardsCountInSixCardFlush() {
 		long fiveFlush = Hand.createHand("Qc", "Jd", "Tc", "Jc", "Ac", "3c", "Ad");
 		long sixFlush = Hand.createHand("Qc", "Jd", "Tc", "Jc", "Ac", "3c", "2c");
-		assertTrue(Evaluator.evaluate(fiveFlush) == Evaluator.evaluate(sixFlush));
+		assertTrue(evaluate(fiveFlush) == evaluate(sixFlush));
 	}
 	
 	//STRAIGHT
 	@Test
 	void aStraightDrawIsNotAStraight() {
 		long draw = Hand.createHand("Qs", "Jd", "Tc", "Jc", "Kc", "3h", "4d");
-		assertEquals(0L, Evaluator.evaluate(draw) & STRAIGHT_MASK);
+		assertEquals(0L, evaluate(draw) & STRAIGHT_MASK);
 	}
 	
 	@Test
 	void fiveInARowIsAStraight() {
 		long straight = Hand.createHand("Qs", "Jd", "Tc", "Jc", "Kc", "9h", "4d");
-		assertNotEquals(0L, Evaluator.evaluate(straight) & STRAIGHT_MASK);
+		assertNotEquals(0L, evaluate(straight) & STRAIGHT_MASK);
 	}
 	
 	@Test
 	void aStraightIsNotABiggerHand() {
 		long straight = Hand.createHand("Qs", "Jd", "Tc", "Jc", "Kc", "9h", "4d");
-		assertEquals(0L, Evaluator.evaluate(straight) & (FLUSH_MASK | BOAT_MASK | QUAD_MASK | SF_MASK));
+		assertEquals(0L, evaluate(straight) & (FLUSH_MASK | BOAT_MASK | QUAD_MASK | SF_MASK));
 	}
 	
 	@Test
 	void aBroadwayIsAStraight() {
 		long broadway = Hand.createHand("Qs", "Jd", "Tc", "Jc", "Kc", "Ah", "4d");
-		assertNotEquals(0L, Evaluator.evaluate(broadway) & STRAIGHT_MASK);
+		assertNotEquals(0L, evaluate(broadway) & STRAIGHT_MASK);
 	}
 	
 	@Test
 	void aWheelIsAStraight() {
 		long wheel = Hand.createHand("3s", "Jd", "5c", "Jc", "2c", "Ah", "4d");
-		assertNotEquals(0L, Evaluator.evaluate(wheel) & STRAIGHT_MASK);
+		assertNotEquals(0L, evaluate(wheel) & STRAIGHT_MASK);
 	}
 	
 	@Test
 	void aStraightFlushIsNotAStraight() {
 		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "9s", "8s", "7s");
-		assertEquals(0L, Evaluator.evaluate(hand) & STRAIGHT_MASK);
+		assertEquals(0L, evaluate(hand) & STRAIGHT_MASK);
 	}
 	
 	@Test
@@ -288,13 +290,13 @@ class EvaluatorTest {
 	@Test
 	void onePairIsNotTrips() {
 		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "8s", "7s");
-		assertEquals(0L, Evaluator.evaluate(hand) & TRIP_MASK);
+		assertEquals(0L, evaluate(hand) & TRIP_MASK);
 	}
 	
 	@Test
 	void threePairsIsNotTrips() {
 		long hand = Hand.createHand("Jc", "Js", "Ts", "2h", "2d", "Td", "7s");
-		assertEquals(0L, Evaluator.evaluate(hand) & TRIP_MASK);
+		assertEquals(0L, evaluate(hand) & TRIP_MASK);
 	}
 	
 	@Test
@@ -307,7 +309,7 @@ class EvaluatorTest {
 	void tripsAreEvaluatedOnTheRankOfThe3() {
 		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "2s", "7s");
 		long bigger = Hand.createHand("7c", "5s", "4s", "3h", "3d", "3s", "2s");
-		assertTrue(Evaluator.evaluate(bigger)> Evaluator.evaluate(hand));
+		assertTrue(evaluate(bigger)> evaluate(hand));
 	}
 	
 	@Test
@@ -333,52 +335,52 @@ class EvaluatorTest {
 	@Test
 	void tripsAreNotAnyOfTheHigher() {
 		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "2s", "7s");
-		assertEquals(0L, Evaluator.evaluate(hand) & (STRAIGHT_MASK | FLUSH_MASK | BOAT_MASK | QUAD_MASK | SF_MASK));
+		assertEquals(0L, evaluate(hand) & (STRAIGHT_MASK | FLUSH_MASK | BOAT_MASK | QUAD_MASK | SF_MASK));
 	}
 
 	@Test
 	void aStraightIsNotTrips() {
 		long hand = Hand.createHand("Ac", "3s", "4s", "2h", "2d", "2s", "5s");
-		assertEquals(0L, Evaluator.evaluate(hand) & TRIP_MASK);
+		assertEquals(0L, evaluate(hand) & TRIP_MASK);
 	}
 	
 	@Test
 	void theTripsAreInTheLSP() {
 		long hand = Hand.createHand("Ac", "Js", "Ts", "3h", "3d", "3s", "7s");
-		assertEquals(3L, (Evaluator.evaluate(hand) & MSP_MASK) >> MSP_INDEX);
+		assertEquals(1L << Hand.TREY_INDEX, (evaluate(hand) & MSP_MASK) >> MSP_INDEX);
 	}
 
 	// TWO PAIRS
 	@Test
 	void onePairIsNotTwoPairs() {
 		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "8s", "7s");
-		assertEquals(0L, Evaluator.evaluate(hand) & TWO_PAIR_MASK);
+		assertEquals(0L, evaluate(hand) & TWO_PAIR_MASK);
 	}
 	
 	@Test
 	void threePairsAreTwoPairs() {
 		long hand = Hand.createHand("Jc", "Js", "Ts", "2h", "2d", "Td", "7s");
-		assertNotEquals(0L, Evaluator.evaluate(hand) & TWO_PAIR_MASK);
+		assertNotEquals(0L, evaluate(hand) & TWO_PAIR_MASK);
 	}
 	
 	@Test
 	void twoPairsAreTwoPairs() {
 		long hand = Hand.createHand("Ac", "Js", "Ts", "7h", "2d", "2s", "7s");
-		assertNotEquals(0L, Evaluator.evaluate(hand) & TWO_PAIR_MASK);
+		assertNotEquals(0L, evaluate(hand) & TWO_PAIR_MASK);
 	}
 
 	@Test
 	void twoPairsAreEvaluatedOnTheHighestRank() {
 		long hand = Hand.createHand("Ac", "Js", "Ts", "7h", "2d", "2s", "7s");
 		long bigger = Hand.createHand("8c", "5s", "4s", "8h", "3d", "3s", "2s");
-		assertTrue(Evaluator.evaluate(bigger)> Evaluator.evaluate(hand));
+		assertTrue(evaluate(bigger)> evaluate(hand));
 	}
 	
 	@Test
 	void twoPairsAreEvaluatedOnTheLowestRankAfterTheHighest() {
 		long hand = Hand.createHand("Ac", "Js", "Ts", "7h", "2d", "2s", "7s");
 		long bigger = Hand.createHand("7c", "5s", "4s", "7h", "3d", "3s", "2s");
-		assertTrue(Evaluator.evaluate(bigger)> Evaluator.evaluate(hand));
+		assertTrue(evaluate(bigger)> evaluate(hand));
 	}
 	
 	@Test
@@ -412,7 +414,7 @@ class EvaluatorTest {
 	@Test
 	void onePairIsInMSP() {
 		long hand = Hand.createHand("Ac", "Js", "Ts", "2h", "2d", "8s", "7s");
-		assertEquals(2L, (evaluate(hand) & MSP_MASK) >> MSP_INDEX);
+		assertEquals(1L << Hand.DEUCE_INDEX, (evaluate(hand) & MSP_MASK) >> MSP_INDEX);
 	}
 	
 	@Test
